@@ -1,0 +1,322 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>C++并发编程-2 FFmpeg推流命令参数 | Altria的小屋</title><meta name="author" content="Altria"><meta name="copyright" content="Altria"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="其实没太想好FFmpeg这一篇博客放在哪个分类下面，后续应该不会开一个单独的音视频处理的分类，就接着上次的多路视频流采集继续写一些。  视频的基本概念 诚然，我对视频处理其实并不熟悉，因此需要对各个概念做些明确与区分，比如MP4是什么？H264又是什么？以及推流中的关键帧等概念，需要提前认识一下。  封装格式（快递箱子） 例如：.mp4、.flv、.mkv、.avi。这些文件后缀名，只是一个外壳。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++并发编程-2 FFmpeg推流命令参数">
+<meta property="og:url" content="https://altria1122.github.io/2026/01/17/technology/202601/FFmpeg%E5%91%BD%E4%BB%A4%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="Altria的小屋">
+<meta property="og:description" content="其实没太想好FFmpeg这一篇博客放在哪个分类下面，后续应该不会开一个单独的音视频处理的分类，就接着上次的多路视频流采集继续写一些。  视频的基本概念 诚然，我对视频处理其实并不熟悉，因此需要对各个概念做些明确与区分，比如MP4是什么？H264又是什么？以及推流中的关键帧等概念，需要提前认识一下。  封装格式（快递箱子） 例如：.mp4、.flv、.mkv、.avi。这些文件后缀名，只是一个外壳。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://altria1122.github.io/img/%E6%98%9FC++.jpg">
+<meta property="article:published_time" content="2026-01-16T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-01-17T10:02:35.953Z">
+<meta property="article:author" content="Altria">
+<meta property="article:tag" content="C++">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://altria1122.github.io/img/%E6%98%9FC++.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "C++并发编程-2 FFmpeg推流命令参数",
+  "url": "https://altria1122.github.io/2026/01/17/technology/202601/FFmpeg%E5%91%BD%E4%BB%A4%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3/",
+  "image": "https://altria1122.github.io/img/%E6%98%9FC++.jpg",
+  "datePublished": "2026-01-16T16:00:00.000Z",
+  "dateModified": "2026-01-17T10:02:35.953Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Altria",
+      "url": "https://altria1122.github.io/"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/faviconFurina.ico"><link rel="canonical" href="https://altria1122.github.io/2026/01/17/technology/202601/FFmpeg%E5%91%BD%E4%BB%A4%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'C++并发编程-2 FFmpeg推流命令参数',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><!-- hexo injector head_end start -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hexo-math@4.0.0/dist/style.css">
+<!-- hexo injector head_end end --><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/Altria.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">19</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/星C++.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Altria的小屋</span></a><a class="nav-page-title" href="/"><span class="site-name">C++并发编程-2 FFmpeg推流命令参数</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">C++并发编程-2 FFmpeg推流命令参数</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-01-16T16:00:00.000Z" title="发表于 2026-01-17 00:00:00">2026-01-17</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-01-17T10:02:35.953Z" title="更新于 2026-01-17 18:02:35">2026-01-17</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/FFmpeg/">FFmpeg</a></span></div><div class="meta-secondline"></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>其实没太想好<code>FFmpeg</code>这一篇博客放在哪个分类下面，后续应该不会开一个单独的音视频处理的分类，就接着上次的多路视频流采集继续写一些。</p>
+<h2 id="视频的基本概念"><a class="markdownIt-Anchor" href="#视频的基本概念"></a> 视频的基本概念</h2>
+<p>诚然，我对视频处理其实并不熟悉，因此需要对各个概念做些明确与区分，比如MP4是什么？H264又是什么？以及推流中的关键帧等概念，需要提前认识一下。</p>
+<h3 id="封装格式快递箱子"><a class="markdownIt-Anchor" href="#封装格式快递箱子"></a> 封装格式（快递箱子）</h3>
+<p>例如：<code>.mp4</code>、<code>.flv</code>、<code>.mkv</code>、<code>.avi</code>。这些文件后缀名，只是一个外壳。它就像一个快递箱，里面装着“视频画面”和“音频声音”两样东西。有些箱子是透明的（支持网页直接播），有些箱子很结实（支持更多功能）。直播推流通常用 FLV 箱子，因为它传输快。</p>
+<h3 id="编码格式"><a class="markdownIt-Anchor" href="#编码格式"></a> 编码格式</h3>
+<p>例子：<code>H.264</code>、<code>H.265</code>、<code>AAC</code>、<code>MP3</code>，这里面混杂了视频与音频的编码方法。原始的视频画面是非常巨大的（几秒钟就能有几百兆）。为了塞进箱子传输，我们必须把它“压缩”。<code>H.264</code>：这是一种把视频画面“折叠/压缩”的标准（方法）。<code>AAC</code>：这是一种把声音“折叠/压缩”的标准。</p>
+<p>注意，<code>H.264</code>、<code>H.265</code>这俩有啥区别？</p>
+<ul>
+<li><code>H.264</code> (也叫 <code>AVC</code>) —— 老大哥，最稳，目前世界上兼容性最好的视频编码标准。上到十几年前的诺基亚，下到最新的 iPhone，甚至是网页浏览器，都能直接播放它。因为兼容性好，推流基本上必须用 H.264，否则观众可能看不了。</li>
+<li><code>H.265</code> (也叫 <code>HEVC</code>) —— 接班人，省流量，画质一样的情况下，它的体积只有 H.264 的一半！这意味着更省带宽。</li>
+</ul>
+<h2 id="推流中的关键概念码率-gop-copy"><a class="markdownIt-Anchor" href="#推流中的关键概念码率-gop-copy"></a> 推流中的关键概念（码率、GOP、Copy）</h2>
+<h3 id="码率bitrate水管的水流大小"><a class="markdownIt-Anchor" href="#码率bitrate水管的水流大小"></a> 码率（Bitrate）：水管的水流大小</h3>
+<p>参数：<code>-b:v 2000k</code>：每秒钟传送多少数据。</p>
+<ul>
+<li>太大：画质清晰，但如果观众网速不好，就会一直转圈缓冲（水管爆了）。</li>
+<li>太小：流畅，但是画面全是马赛克（水流太细）。</li>
+</ul>
+<h3 id="gop-group-of-pictures-与关键帧翻书的完整页"><a class="markdownIt-Anchor" href="#gop-group-of-pictures-与关键帧翻书的完整页"></a> GOP (Group of Pictures) 与关键帧：翻书的完整页</h3>
+<p>参数：<code>-g 60</code> 视频压缩不是每一帧都存一张完整的照片。</p>
+<ul>
+<li>I帧（关键帧）：一张完整的照片。</li>
+<li>P帧/B帧：只记录相对于上一张照片“哪里变了”。<br>
+直播痛点：如果你把关键帧间隔设得太长（比如 10秒一个 I帧），新进来的观众必须等到下一个 I帧来了才能看到画面，这导致他进来可能会黑屏好几秒。直播通常要求 2秒一个 I帧。如果帧率是 30，那就设 <code>-g 60</code>。</li>
+</ul>
+<h3 id="copy-模式直接换个箱子"><a class="markdownIt-Anchor" href="#copy-模式直接换个箱子"></a> Copy 模式：直接换个箱子</h3>
+<p>参数：<code>-c copy</code> (或 <code>-c:v copy -c:a copy</code>)<br>
+解释：这是 FFmpeg 最神的一个命令。<br>
+场景：假设你有一个 <code>.mp4</code> 视频，里面的视频本来就是 <code>H.264</code>，音频本来就是 <code>AAC</code>。你想把它推流到服务器。<br>
+做法：你不需要让 <code>libx264</code> 重新把衣服折叠一遍（不需要重新编码）。你只需要把 <code>.mp4</code> 盒子拆开，直接把里面的流拿出来，塞进 <code>.flv</code> 的盒子里发走。<br>
+好处：极快！CPU 占用几乎为 0！ 画质完全无损。</p>
+<h3 id="小疑问"><a class="markdownIt-Anchor" href="#小疑问"></a> 小疑问</h3>
+<p>这里其实会有一个神奇的问题，我个人的疑问：是不是固定了FPS、画面宽高（分辨率），是不是就能确定码率？确定了码率，是不是能决定实际观看中的FPS？</p>
+<p>对于1秒的直播数据量（RAW），我们大约估算为：分辨率*颜色深度*FPS，这个数据量是比较大的，因此我们采用了压缩算法，那么压缩后的数据量有多少？这个数据的预算为：码率。（注意，我们已经锚定了时间窗：1秒）</p>
+<p>理想的状态是什么？码率足够！编解码之后对画面的还原度高，也流畅！</p>
+<p>但如果码率设置低会发生什么？<strong>全力保障帧率与流畅性，牺牲画面质量</strong>，即便是分辨率为1080，我画成简笔画，他用的数据量就会少（时刻注意，我们讨论的画面是压缩后的，并不是原始的图像理论数据量）</p>
+<p><code>老板让我每秒画30张蒙娜丽莎，但是给我的笔只够画成15张，但是数量不能少，所以我只能把每一张都画得很潦草，最后保证交付30张</code></p>
+<p>但有没有一种可能？30张是真画不完？这时候ffmpeg要求30帧，而CPU撑死渲染了20帧，此时不能赖数据量不够大，不能说是画师颜料配发少了，而是画的本来就慢，会发生<strong>丢帧</strong>。</p>
+<h2 id="ffmpeg-推流的基本命令结构"><a class="markdownIt-Anchor" href="#ffmpeg-推流的基本命令结构"></a> FFmpeg 推流的基本命令结构</h2>
+<p>一条标准的推流命令通常包含以下几个部分：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ffmpeg [全局参数] [输入文件参数] -i [输入地址] [视频编码参数] [音频编码参数] [输出封装格式] [推流地址]</span><br></pre></td></tr></table></figure>
+<p>最简单的推流示例（直接复制流，不重新编码）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ffmpeg -re -i local_video.mp4 -c copy -f flv rtmp://server/live/streamName</span><br></pre></td></tr></table></figure>
+<h2 id="核心参数详解"><a class="markdownIt-Anchor" href="#核心参数详解"></a> 核心参数详解</h2>
+<h3 id="通用与输入参数"><a class="markdownIt-Anchor" href="#通用与输入参数"></a> 通用与输入参数</h3>
+<ul>
+<li><code>-i filename</code>：指定输入文件或设备地址（可以是本地文件、摄像头、RTSP流等）。</li>
+<li><code>-re</code>(Read native): 表示按本地帧率读取数据。推本地文件（如 .mp4）时<b>必须加</b>，否则 FFmpeg 会以最快速度读取文件并发送，导致流媒体服务器瞬间由于数据量过大而崩盘。如果是推摄像头或实时流（RTSP），通常<b>不要加</b>这个参数，因为源本身就是实时的。</li>
+<li><code>-y</code>：若输出文件已存在，直接覆盖（在推流场景下用的少，录制时用得多）。</li>
+<li><code>-stream_loop -1</code>：无限循环输入文件（放在 -i 之前）。</li>
+</ul>
+<h3 id="视频编码参数-video"><a class="markdownIt-Anchor" href="#视频编码参数-video"></a> 视频编码参数 (Video)</h3>
+<ul>
+<li><code>-c:v</code>或<code>-vcodec</code>：指定视频编码器。
+<ul>
+<li><code>copy</code>: 最常用。直接复制视频流，不进行重新编码（CPU占用极低，画质无损，速度快）。</li>
+<li><code>libx264</code>: 软件编码 H.264（通用性最好，但吃 CPU）。</li>
+<li><code>h264_nvenc</code>: NVIDIA 显卡硬件加速编码 H.264。</li>
+<li><code>libx265</code>: H.265 编码。</li>
+</ul>
+</li>
+<li><code>-b:v 2000k</code>: 设置视频平均码率为 2000kbps。控制画质和带宽占用的核心参数。</li>
+<li><code>-maxrate 2500k</code>: 设置视频最大码率。</li>
+<li><code>-bufsize 5000k</code>: 设置码率控制缓冲区大小。通常设置为 maxrate 的 2 倍，用于平滑码率波动。</li>
+<li><code>-r 30</code>: 强制设置帧率为 30 fps。</li>
+<li><code>-s 1920x1080</code>: 设置分辨率（Scale）。</li>
+<li><code>-g 60</code>(GOP size): 关键参数。设置关键帧间隔（Group of Pictures）。直播通常要求 2秒一个关键帧。如果帧率是 30fps，建议 <code>-g 60</code>。如果不设置，进入直播间可能首屏加载很慢。</li>
+<li><code>-pix_fmt yuv420p</code>: 设置像素格式。为了兼容各种播放器，建议强制指定为 <code>yuv420p</code>。</li>
+<li><code>-preset</code>(仅限 libx264): 编码速度预设。
+<ul>
+<li>可选值：<code>ultrafast</code>, <code>superfast</code>, <code>veryfast</code>, <code>faster</code>, <code>fast</code>, <code>medium (默认)</code>, <code>slow</code>…</li>
+</ul>
+</li>
+<li><code>-tune zerolatency</code>(仅限 libx264): 优化编码参数以实现零延迟，直播必备。</li>
+</ul>
+<h3 id="音频编码参数-audio"><a class="markdownIt-Anchor" href="#音频编码参数-audio"></a> 音频编码参数 (Audio)</h3>
+<ul>
+<li><code>-c:a</code> 或 <code>-acodec</code>: 指定音频编码器。
+<ul>
+<li>aac: 最通用的直播音频编码。</li>
+<li>copy: 不转码，直接复制。</li>
+</ul>
+</li>
+<li><code>-b:a 128k</code>: 音频码率，通常 128k 或 64k 足够人声使用。</li>
+<li><code>-ar 44100</code>: 音频采样率，通常为 44100Hz 或 48000Hz。</li>
+<li><code>-ac 2</code>: 声道数，2 代表立体声。</li>
+<li><code>-an</code>: 去除音频（静音推流）。</li>
+</ul>
+<h3 id="输出与封装参数"><a class="markdownIt-Anchor" href="#输出与封装参数"></a> 输出与封装参数</h3>
+<ul>
+<li><code>-f flv</code>: 强制输出格式为 FLV。RTMP 推流必须加。</li>
+<li><code>-f mpegts</code>: UDP/RTP 推流常用格式。</li>
+<li><code>-f rtsp</code>: 推送 RTSP 流。</li>
+</ul>
+<h3 id="实践时的一些问题"><a class="markdownIt-Anchor" href="#实践时的一些问题"></a> 实践时的一些问题</h3>
+<p>最近做yolox的端侧推理的时候，MediaMTX有时会报<code>写队列满</code>的警告，在此处复盘分析一下：</p>
+<p>在之前的博客中我曾使用ffmpeg推一个mp4视频，模拟监控设备的RSTP流，bash脚本为：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># MediaMTX 服务器地址</span></span><br><span class="line">RTSP_URL=<span class="string">&quot;rtsp://localhost:8554&quot;</span></span><br><span class="line"><span class="comment"># 视频目录</span></span><br><span class="line">VIDEO_DIR=<span class="string">&quot;/mnt/e/Linux/testvideo&quot;</span></span><br><span class="line"><span class="comment"># 建议：先杀掉旧的 ffmpeg 进程，防止端口占用或重复推流</span></span><br><span class="line">pkill -f <span class="string">&quot;ffmpeg -re&quot;</span></span><br><span class="line"><span class="comment"># 遍历视频目录中的所有 mp4 文件</span></span><br><span class="line"><span class="keyword">for</span> VIDEO_FILE <span class="keyword">in</span> <span class="string">&quot;<span class="variable">$VIDEO_DIR</span>&quot;</span>/*.mp4; <span class="keyword">do</span></span><br><span class="line">  <span class="keyword">if</span> [ -f <span class="string">&quot;<span class="variable">$VIDEO_FILE</span>&quot;</span> ]; <span class="keyword">then</span></span><br><span class="line">    <span class="comment"># 获取文件名并替换所有非法字符</span></span><br><span class="line">    STREAM_NAME=$(<span class="built_in">basename</span> <span class="string">&quot;<span class="variable">$VIDEO_FILE</span>&quot;</span> .mp4 | sed -e <span class="string">&#x27;s/[^A-Za-z0-9._-]/_/g&#x27;</span>)</span><br><span class="line">    <span class="comment"># 启动 ffmpeg 推流 (静音版)</span></span><br><span class="line">    ffmpeg \</span><br><span class="line">      -re \</span><br><span class="line">      -stream_loop -1 \</span><br><span class="line">      -i <span class="string">&quot;<span class="variable">$VIDEO_FILE</span>&quot;</span> \</span><br><span class="line">      -c:v copy \</span><br><span class="line">      -an \</span><br><span class="line">      -f rtsp \</span><br><span class="line">      -rtsp_transport tcp \</span><br><span class="line">      <span class="string">&quot;<span class="variable">$RTSP_URL</span>/<span class="variable">$STREAM_NAME</span>&quot;</span> \</span><br><span class="line">      &gt; /dev/null 2&gt;&amp;1 &amp;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;已启动推流(无音频): <span class="variable">$VIDEO_FILE</span> -&gt; <span class="variable">$RTSP_URL</span>/<span class="variable">$STREAM_NAME</span>&quot;</span></span><br><span class="line">  <span class="keyword">fi</span></span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;所有推流已启动！请等待 5-10 秒后访问 HLS 地址。&quot;</span></span><br></pre></td></tr></table></figure>
+<p>首先过一遍命令，采用copy的方式，推流到MediaMTX服务器，其中有一个之前没有提到的命令：<code>-rtsp_transport tcp</code>，他保证了mp4文件到MediaMTX的过程是满足TCP的，如果这部分采用了udp，虽然RSTP协议本身甚至默认采用UDP发送数据包，摄像头像个机关枪，向ffmpeg发送，但有的时候会因为网络问题导致丢包，如果丢弃了关键帧，可能要等更长时间，花屏更久。加了TCP，至少不会出现丢包。</p>
+<p>但是这个参数与我实际的场景还是稍微有一点点不同的，我们分上下行来说：</p>
+<h4 id="上行推流"><a class="markdownIt-Anchor" href="#上行推流"></a> 上行（推流）</h4>
+<p>路径：<code>本地文件</code> -&gt; <code>FFmpeg</code> -&gt; <code>MediaMTX</code><br>
+参数作用：<code>-rtsp_transport tcp</code> FFmpeg 会跟 MediaMTX 握手说：“老兄，我要给你发视频，用 TCP 协议，别丢包。” MediaMTX 同意了。</p>
+<h4 id="下行拉流"><a class="markdownIt-Anchor" href="#下行拉流"></a> 下行（拉流）</h4>
+<p>路径：<code>MediaMTX</code> -&gt; <code>C++ 程序</code><br>
+参数作用：</p>
+<ul>
+<li>FFmpeg 脚本里的参数跟这里毫无关系。</li>
+<li>这一段是用 TCP 还是 UDP，完全取决于你的 C++ 代码是怎么写的。</li>
+<li>如果在 OpenCV 里没指定，默认通常是 UDP（也就是那个容易花屏的模式）。</li>
+<li>但是！ 既然 MediaMTX 报了 <code>Write Queue Full</code>，这就反向证明了你的 C++ 程序实际上正在使用 TCP 连接。因为只有 TCP 才会让服务器“排队等待”，UDP 服务器早就直接扔掉了，根本不会排队。</li>
+</ul>
+<h4 id="原因分析"><a class="markdownIt-Anchor" href="#原因分析"></a> 原因分析</h4>
+<p>两段路拼起来，看看“写队列满”是怎么发生的：</p>
+<ul>
+<li><strong>供货商（FFmpeg）</strong>：通过 <strong>TCP</strong>，源源不断、保质保量地把货（视频帧）运到了<strong>仓库（MediaMTX）</strong>。</li>
+<li><strong>仓库（MediaMTX）</strong>：因为是 TCP，供货商发多少，我就得收多少，不能拒收。</li>
+<li><strong>取货人（C++）</strong>：也在用 TCP 跟仓库连着。
+<ul>
+<li>取货人虽然连着线，但是取货动作特别慢（read 慢，解码慢）。</li>
+<li>取货人通过 TCP 告诉仓库：“等等！我处理不过来了，别发了！”</li>
+</ul>
+</li>
+</ul>
+<p>灾难发生：</p>
+<ul>
+<li>仓库夹在中间。</li>
+<li>左边进货停不下来（FFmpeg 还在推）。</li>
+<li>右边出货被堵住了（C++ 不要）。</li>
+<li>仓库里的货越堆越高（Write Queue 变大）。</li>
+<li>最后仓库爆仓了 -&gt; Write Queue Full -&gt; 断开 C++ 的连接。</li>
+</ul>
+<p><strong>根本原因：C++ 消费速度 &lt; FFmpeg 生产速度。</strong></p>
+<p>再来看看C++的代码：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">InferenceWorker::captureLoop</span><span class="params">(<span class="type">const</span> std::string&amp; streamId)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    StreamInfo* stream = <span class="literal">nullptr</span>;</span><br><span class="line"></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">std::shared_lock <span class="title">lock</span><span class="params">(streamsMutex_)</span></span>;</span><br><span class="line">        <span class="keyword">auto</span> it = streams_.<span class="built_in">find</span>(streamId);</span><br><span class="line">        <span class="keyword">if</span> (it == streams_.<span class="built_in">end</span>()) <span class="keyword">return</span>;</span><br><span class="line">        stream = it-&gt;second.<span class="built_in">get</span>();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    cv::Mat frame;</span><br><span class="line">    <span class="type">const</span> <span class="type">int</span> max_queue_size = config_.maxQueueSize;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (stream-&gt;state == StreamState::RUNNING &amp;&amp; !shouldStop_ &amp;&amp; !stream-&gt;shouldStop.<span class="built_in">load</span>()) &#123;</span><br><span class="line">        <span class="keyword">if</span>(stream-&gt;capture.<span class="built_in">read</span>(frame)) &#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">            <span class="keyword">auto</span> capture_time = std::chrono::steady_clock::<span class="built_in">now</span>();</span><br><span class="line">            ++stream-&gt;framesCaptured;</span><br><span class="line"></span><br><span class="line">            std::lock_guard&lt;std::mutex&gt;<span class="built_in">lock</span>(queueMutex_);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span>(frameQueue_.<span class="built_in">size</span>() &gt;= max_queue_size) &#123;</span><br><span class="line">                std::queue&lt;FrameData&gt; temp_queue;</span><br><span class="line">                <span class="type">bool</span> dropped = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">while</span> (!frameQueue_.<span class="built_in">empty</span>()) &#123;</span><br><span class="line">                    <span class="keyword">auto</span>&amp; front = frameQueue_.<span class="built_in">front</span>();</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">if</span>(!dropped &amp;&amp; front.streamId == stream-&gt;id) &#123;</span><br><span class="line">                        dropped = <span class="literal">true</span>;</span><br><span class="line">                        ++stream-&gt;framesDropped;</span><br><span class="line">                    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                        temp_queue.<span class="built_in">push</span>(std::<span class="built_in">move</span>(front));</span><br><span class="line">                    &#125;</span><br><span class="line">                    frameQueue_.<span class="built_in">pop</span>();</span><br><span class="line">                &#125;</span><br><span class="line">                frameQueue_ = std::<span class="built_in">move</span>(temp_queue);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            frameQueue_.<span class="built_in">push</span>(&#123;frame.<span class="built_in">clone</span>(), streamId, capture_time&#125;);</span><br><span class="line">            queueCV_.<span class="built_in">notify_one</span>();</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            std::cerr &lt;&lt; <span class="string">&quot;Stream &quot;</span> &lt;&lt; streamId &lt;&lt; <span class="string">&quot; disconnected, attempting reconnect...&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">            stream-&gt;capture.<span class="built_in">release</span>();</span><br><span class="line">            std::this_thread::<span class="built_in">sleep_for</span>(std::chrono::<span class="built_in">seconds</span>(<span class="number">1</span>));</span><br><span class="line">            stream-&gt;capture.<span class="built_in">open</span>(stream-&gt;url, cv::CAP_FFMPEG);</span><br><span class="line">            stream-&gt;capture.<span class="built_in">set</span>(cv::CAP_PROP_BUFFERSIZE, <span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>存在以下性能隐患：</p>
+<ul>
+<li>全局锁与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>N</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(N)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">O</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.10903em;">N</span><span class="mclose">)</span></span></span></span> 复杂度的丢帧逻辑</li>
+<li>frame.clone() 的深拷贝成本</li>
+<li>stream-&gt;capture.read(frame) 的隐性阻塞（是同步阻塞的，并且包含软解码。）</li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://altria1122.github.io">Altria</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://altria1122.github.io/2026/01/17/technology/202601/FFmpeg%E5%91%BD%E4%BB%A4%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3/">https://altria1122.github.io/2026/01/17/technology/202601/FFmpeg%E5%91%BD%E4%BB%A4%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://altria1122.github.io" target="_blank">Altria的小屋</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/C/">C++</a></div><div class="post-share"><div class="social-share" data-image="/img/%E6%98%9FC++.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/01/06/technology/202601/%E7%AB%AF%E8%BE%B9%E5%8D%8F%E5%90%8C%E7%9A%84%E5%A2%9E%E9%87%8F%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%E7%B3%BB%E7%BB%9F-2/" title="端边协同的增量目标检测系统-2 中控UI"><img class="cover" src="/img/%E6%B5%81%E8%90%A4.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">端边协同的增量目标检测系统-2 中控UI</div></div><div class="info-2"><div class="info-item-1">根据前一节构建的框架，本节搭建一个基本的前端页面UI，大体上需要如下四个页面：   全局layout 核心架构搭建：构建基于 Ant Design 的响应式全局 Layout 在后台管理系统中，全局 Layout（布局）扮演着骨架的角色。它不仅负责维护页面结构的一致性（侧边栏、顶栏），还需要处理全局状态（如导航高亮、报警消息推送）。 采用了 React + Ant Design 5.x + Tailwind CSS，构建了一个经典的“左右结构”管理后台。以下是该组件的三个核心实现要点：  利用 Flex 布局与组件化 利用 Ant Design 的  组件体系，极大地简化了 CSS 布局的工作量。整体采用了 Sider（侧边栏）+ Header（顶栏）+ Content（内容区）的经典布局。  Sider: 负责导航，支持折叠收起。 Header: 放置折叠开关和全局功能入口（如消息通知）。 Content: 路由的出口，用于渲染具体的业务页面。 代码实现上，通过Tailwind的 min-h-screen...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/07/26/technology/202507/C++%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B-%E8%A7%86%E9%A2%91%E5%A4%84%E7%90%86/" title="C++并发编程-1 多路视频采集处理"><img class="cover" src="/img/%E6%98%9FC++.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-26</div><div class="info-item-2">C++并发编程-1 多路视频采集处理</div></div><div class="info-2"><div class="info-item-1">之前搭建了tensorRT的基本框架，想着部署个yolo做多路视频的处理，现在没有真实的网络摄像头可供使用，临时采用RTSP+ffmpeg推流、Opencv拉流组个模拟。  推流 RTSP（Real-Time Streaming Protocol）用于在网络中控制流媒体服务器。RTSP 允许客户端（如媒体播放器）与服务器建立和控制流媒体会话，支持播放、暂停和停止等功能。他并不直接提供视频推流，需要结合ffmpeg一起。  RTSP服务器安装 下载mediamtx_v1.5.1_linux_amd64.tar.gz，解压，执行./mediamtx  ffmpeg 安装 直接sudo安装即可：sudo apt install ffmpeg 为了同时推送多路视频，可以写sh脚本： 123456789101112131415161718192021222324252627282930#!/bin/bash# MediaMTX 服务器地址RTSP_URL=&quot;rtsp://localhost:8554&quot;#...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/Altria.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Altria</div><div class="author-info-description">博客正在施工中</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">19</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">一个技术小白的探索之路，记录学习，记录生活。希望这个网站能帮到你。</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%A7%86%E9%A2%91%E7%9A%84%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="toc-number">1.</span> <span class="toc-text"> 视频的基本概念</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B0%81%E8%A3%85%E6%A0%BC%E5%BC%8F%E5%BF%AB%E9%80%92%E7%AE%B1%E5%AD%90"><span class="toc-number">1.1.</span> <span class="toc-text"> 封装格式（快递箱子）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%96%E7%A0%81%E6%A0%BC%E5%BC%8F"><span class="toc-number">1.2.</span> <span class="toc-text"> 编码格式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8E%A8%E6%B5%81%E4%B8%AD%E7%9A%84%E5%85%B3%E9%94%AE%E6%A6%82%E5%BF%B5%E7%A0%81%E7%8E%87-gop-copy"><span class="toc-number">2.</span> <span class="toc-text"> 推流中的关键概念（码率、GOP、Copy）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A0%81%E7%8E%87bitrate%E6%B0%B4%E7%AE%A1%E7%9A%84%E6%B0%B4%E6%B5%81%E5%A4%A7%E5%B0%8F"><span class="toc-number">2.1.</span> <span class="toc-text"> 码率（Bitrate）：水管的水流大小</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#gop-group-of-pictures-%E4%B8%8E%E5%85%B3%E9%94%AE%E5%B8%A7%E7%BF%BB%E4%B9%A6%E7%9A%84%E5%AE%8C%E6%95%B4%E9%A1%B5"><span class="toc-number">2.2.</span> <span class="toc-text"> GOP (Group of Pictures) 与关键帧：翻书的完整页</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#copy-%E6%A8%A1%E5%BC%8F%E7%9B%B4%E6%8E%A5%E6%8D%A2%E4%B8%AA%E7%AE%B1%E5%AD%90"><span class="toc-number">2.3.</span> <span class="toc-text"> Copy 模式：直接换个箱子</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B0%8F%E7%96%91%E9%97%AE"><span class="toc-number">2.4.</span> <span class="toc-text"> 小疑问</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ffmpeg-%E6%8E%A8%E6%B5%81%E7%9A%84%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4%E7%BB%93%E6%9E%84"><span class="toc-number">3.</span> <span class="toc-text"> FFmpeg 推流的基本命令结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3"><span class="toc-number">4.</span> <span class="toc-text"> 核心参数详解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%9A%E7%94%A8%E4%B8%8E%E8%BE%93%E5%85%A5%E5%8F%82%E6%95%B0"><span class="toc-number">4.1.</span> <span class="toc-text"> 通用与输入参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%86%E9%A2%91%E7%BC%96%E7%A0%81%E5%8F%82%E6%95%B0-video"><span class="toc-number">4.2.</span> <span class="toc-text"> 视频编码参数 (Video)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9F%B3%E9%A2%91%E7%BC%96%E7%A0%81%E5%8F%82%E6%95%B0-audio"><span class="toc-number">4.3.</span> <span class="toc-text"> 音频编码参数 (Audio)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BE%93%E5%87%BA%E4%B8%8E%E5%B0%81%E8%A3%85%E5%8F%82%E6%95%B0"><span class="toc-number">4.4.</span> <span class="toc-text"> 输出与封装参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E8%B7%B5%E6%97%B6%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98"><span class="toc-number">4.5.</span> <span class="toc-text"> 实践时的一些问题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%8A%E8%A1%8C%E6%8E%A8%E6%B5%81"><span class="toc-number">4.5.1.</span> <span class="toc-text"> 上行（推流）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%8B%E8%A1%8C%E6%8B%89%E6%B5%81"><span class="toc-number">4.5.2.</span> <span class="toc-text"> 下行（拉流）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8E%9F%E5%9B%A0%E5%88%86%E6%9E%90"><span class="toc-number">4.5.3.</span> <span class="toc-text"> 原因分析</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/17/technology/202601/FFmpeg%E5%91%BD%E4%BB%A4%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3/" title="C++并发编程-2 FFmpeg推流命令参数"><img src="/img/%E6%98%9FC++.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++并发编程-2 FFmpeg推流命令参数"/></a><div class="content"><a class="title" href="/2026/01/17/technology/202601/FFmpeg%E5%91%BD%E4%BB%A4%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3/" title="C++并发编程-2 FFmpeg推流命令参数">C++并发编程-2 FFmpeg推流命令参数</a><time datetime="2026-01-16T16:00:00.000Z" title="发表于 2026-01-17 00:00:00">2026-01-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/06/technology/202601/%E7%AB%AF%E8%BE%B9%E5%8D%8F%E5%90%8C%E7%9A%84%E5%A2%9E%E9%87%8F%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%E7%B3%BB%E7%BB%9F-2/" title="端边协同的增量目标检测系统-2 中控UI"><img src="/img/%E6%B5%81%E8%90%A4.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="端边协同的增量目标检测系统-2 中控UI"/></a><div class="content"><a class="title" href="/2026/01/06/technology/202601/%E7%AB%AF%E8%BE%B9%E5%8D%8F%E5%90%8C%E7%9A%84%E5%A2%9E%E9%87%8F%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%E7%B3%BB%E7%BB%9F-2/" title="端边协同的增量目标检测系统-2 中控UI">端边协同的增量目标检测系统-2 中控UI</a><time datetime="2026-01-05T16:00:00.000Z" title="发表于 2026-01-06 00:00:00">2026-01-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/05/technology/202601/%E7%AB%AF%E8%BE%B9%E5%8D%8F%E5%90%8C%E7%9A%84%E5%A2%9E%E9%87%8F%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%E7%B3%BB%E7%BB%9F-1/" title="端边协同的增量目标检测系统-1 系统架构与技术选型"><img src="/img/%E6%B5%81%E8%90%A4.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="端边协同的增量目标检测系统-1 系统架构与技术选型"/></a><div class="content"><a class="title" href="/2026/01/05/technology/202601/%E7%AB%AF%E8%BE%B9%E5%8D%8F%E5%90%8C%E7%9A%84%E5%A2%9E%E9%87%8F%E7%9B%AE%E6%A0%87%E6%A3%80%E6%B5%8B%E7%B3%BB%E7%BB%9F-1/" title="端边协同的增量目标检测系统-1 系统架构与技术选型">端边协同的增量目标检测系统-1 系统架构与技术选型</a><time datetime="2026-01-04T16:00:00.000Z" title="发表于 2026-01-05 00:00:00">2026-01-05</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/07/26/technology/202507/C++%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B-%E8%A7%86%E9%A2%91%E5%A4%84%E7%90%86/" title="C++并发编程-1 多路视频采集处理"><img src="/img/%E6%98%9FC++.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++并发编程-1 多路视频采集处理"/></a><div class="content"><a class="title" href="/2025/07/26/technology/202507/C++%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B-%E8%A7%86%E9%A2%91%E5%A4%84%E7%90%86/" title="C++并发编程-1 多路视频采集处理">C++并发编程-1 多路视频采集处理</a><time datetime="2025-07-25T16:00:00.000Z" title="发表于 2025-07-26 00:00:00">2025-07-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/07/26/technology/202507/TensorRT%E5%8A%A8%E6%80%81%E6%89%B9%E6%AC%A1/" title="TensorRT模型部署推理-2 动态批次"><img src="/img/%E6%98%9F.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="TensorRT模型部署推理-2 动态批次"/></a><div class="content"><a class="title" href="/2025/07/26/technology/202507/TensorRT%E5%8A%A8%E6%80%81%E6%89%B9%E6%AC%A1/" title="TensorRT模型部署推理-2 动态批次">TensorRT模型部署推理-2 动态批次</a><time datetime="2025-07-25T16:00:00.000Z" title="发表于 2025-07-26 00:00:00">2025-07-26</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2019 - 2026 By Altria</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.3.5</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(async () => {
+  const showKatex = () => {
+    document.querySelectorAll('#article-container .katex').forEach(el => el.classList.add('katex-show'))
+  }
+
+  if (!window.katex_js_css) {
+    window.katex_js_css = true
+    await btf.getCSS('https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css')
+    if (false) {
+      await btf.getScript('https://cdn.jsdelivr.net/npm/katex/dist/contrib/copy-tex.min.js')
+    }
+  }
+
+  showKatex()
+})()</script></div><canvas class="fireworks" mobile="false"></canvas><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/fireworks.min.js"></script></div></body></html>
